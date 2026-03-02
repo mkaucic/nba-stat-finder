@@ -18,7 +18,7 @@ export default function StatFilters({
   return (
     <div
       style={{
-        background: "#0d1017",
+        background: "var(--bg-surface)",
         border: "1px solid #141b27",
         borderRadius: 6,
         padding: "18px 22px",
@@ -35,20 +35,22 @@ export default function StatFilters({
           flexWrap: "wrap",
         }}
       >
-        <span style={{ color: "#374151" }}>Numeric mode per column:</span>
+        <span style={{ color: "var(--text-secondary)" }}>
+          Numeric mode per column:
+        </span>
         <span>
           <span style={{ color: "#68d391", fontWeight: 700 }}>≥</span>
-          <span style={{ color: "#4a5568" }}> at least</span>
+          <span style={{ color: "var(--text-faint)" }}> at least</span>
         </span>
-        <span style={{ color: "#4a5568" }}>·</span>
+        <span style={{ color: "var(--text-faint)" }}>·</span>
         <span>
           <span style={{ color: "#fc8181", fontWeight: 700 }}>≤</span>
-          <span style={{ color: "#4a5568" }}> at most</span>
+          <span style={{ color: "var(--text-faint)" }}> at most</span>
         </span>
-        <span style={{ color: "#4a5568" }}>·</span>
+        <span style={{ color: "var(--text-faint)" }}>·</span>
         <span>
           <span style={{ color: "#f59e0b", fontWeight: 700 }}>=</span>
-          <span style={{ color: "#4a5568" }}> exact</span>
+          <span style={{ color: "var(--text-faint)" }}> exact</span>
         </span>
       </div>
 

@@ -66,7 +66,7 @@ export default function ResultsTable({ rows, sortState, onSort }: Props) {
           <thead>
             <tr
               style={{
-                background: "#0c0f16",
+                background: "var(--bg-surface)",
                 borderBottom: "2px solid #1a2235",
               }}
             >
@@ -118,7 +118,7 @@ export default function ResultsTable({ rows, sortState, onSort }: Props) {
             style={{
               padding: "44px 20px",
               textAlign: "center",
-              color: "#374151",
+              color: "var(--text-secondary)",
               fontSize: 13,
             }}
           >
@@ -167,7 +167,9 @@ export default function ResultsTable({ rows, sortState, onSort }: Props) {
                         left: 0,
                         width: "100%",
                         height: ROW_HEIGHT,
-                        background: isEven ? "#0a0c10" : "#0c0e14",
+                        background: isEven
+                          ? "var(--bg-row-even)"
+                          : "var(--bg-row-odd)",
                         display: "flex",
                       }}
                     >

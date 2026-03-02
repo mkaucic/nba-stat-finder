@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import type {
   PlayerStatRow,
   FiltersState,
@@ -13,7 +13,7 @@ import StatFilters from "./components/StatFilters";
 import ResultsTable from "./components/ResultsTable";
 import Pagination from "./components/Pagination";
 
-const PAGE_SIZE = 200; // higher since virtual scroll handles rendering
+const PAGE_SIZE = 200;
 
 export default function App() {
   const [rows, setRows] = useState<PlayerStatRow[]>([]);
@@ -26,6 +26,14 @@ export default function App() {
     dir: "desc",
   });
   const [page, setPage] = useState(0);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  // ── Apply theme to document root so CSS variables cascade everywhere ──────
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
   // ── Parse via Web Worker ──────────────────────────────────────────────────
   const handleFile = useCallback((file: File) => {
@@ -61,7 +69,7 @@ export default function App() {
     worker.postMessage({ file });
   }, []);
 
-  // ── Filter ────────────────────────────────────────────────────────────────
+  // ── Filter helpers ────────────────────────────────────────────────────────
   const updateFilter = useCallback((key: string, value: string | undefined) => {
     setFilters((f) => {
       const next = { ...f } as FiltersState;
@@ -99,7 +107,7 @@ export default function App() {
     setPage(0);
   }, []);
 
-  // ── Derived game types list ───────────────────────────────────────────────
+  // ── Derived game types ────────────────────────────────────────────────────
   const gameTypes = useMemo(() => {
     const set = new Set<string>();
     rows.forEach((r) => {
@@ -108,7 +116,7 @@ export default function App() {
     return [...set].sort();
   }, [rows]);
 
-  // ── Filter + sort (memoised) ──────────────────────────────────────────────
+  // ── Filter + sort ─────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     if (!rows.length) return [];
     return rows.filter((row) => {
@@ -164,16 +172,17 @@ export default function App() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#0a0c10",
-        color: "#e2e8f0",
+        background: "var(--bg-base)",
+        color: "var(--text-primary)",
         fontFamily: "'IBM Plex Mono', 'Courier New', monospace",
       }}
     >
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────────────────── */}
       <header
         style={{
-          borderBottom: "1px solid #141b27",
-          background: "linear-gradient(180deg,#0d1017 0%,#0a0c10 100%)",
+          borderBottom: "1px solid var(--border-subtle)",
+          background:
+            "linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-base) 100%)",
           padding: "0 32px",
           display: "flex",
           alignItems: "center",
@@ -191,30 +200,31 @@ export default function App() {
               fontWeight: 800,
               fontSize: 26,
               letterSpacing: "0.04em",
-              color: "#fff",
+              color: "var(--text-primary)",
             }}
           >
-            NBA<span style={{ color: "#f59e0b" }}>STAT</span>FINDER
+            NBA<span style={{ color: "var(--accent)" }}>STAT</span>FINDER
           </span>
           <span
             className="section-label"
-            style={{ color: "#1e2a3a", fontSize: 10 }}
+            style={{ color: "var(--text-deep)", fontSize: 10 }}
           >
             HISTORICAL BOX SCORES
           </span>
         </div>
+
         <div
           style={{
             display: "flex",
             alignItems: "center",
             gap: 16,
             fontSize: 11,
-            color: "#4a5568",
+            color: "var(--text-faint)",
           }}
         >
           {rows.length > 0 && (
             <span>
-              <span style={{ color: "#718096" }}>
+              <span style={{ color: "var(--text-muted)" }}>
                 {rows.length.toLocaleString()}
               </span>{" "}
               rows
@@ -225,16 +235,26 @@ export default function App() {
               {sorted.length.toLocaleString()} matches
             </span>
           )}
+          <button
+            onClick={toggleTheme}
+            className="btn-ghost"
+            style={{ padding: "4px 10px", fontSize: 16, lineHeight: 1 }}
+            title={
+              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            }
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
         </div>
       </header>
 
       <div style={{ padding: "24px 32px", maxWidth: 1900, margin: "0 auto" }}>
-        {/* File loader */}
+        {/* ── File loader ─────────────────────────────────────────────── */}
         {rows.length === 0 && !loading && (
           <FileLoader onFile={handleFile} loadMsg={loadMsg} />
         )}
 
-        {/* Loading overlay */}
+        {/* ── Loading overlay ──────────────────────────────────────────── */}
         {loading && (
           <div
             style={{
@@ -254,22 +274,30 @@ export default function App() {
                 fontFamily: "'Barlow Condensed', sans-serif",
                 fontSize: 52,
                 fontWeight: 800,
-                color: "#f59e0b",
+                color: "var(--accent)",
                 letterSpacing: "0.06em",
               }}
             >
               PARSING…
             </div>
-            <p style={{ color: "#718096", marginTop: 14, fontSize: 13 }}>
+            <p
+              style={{
+                color: "var(--text-muted)",
+                marginTop: 14,
+                fontSize: 13,
+              }}
+            >
               {loadMsg}
             </p>
-            <p style={{ color: "#4a5568", fontSize: 11, marginTop: 8 }}>
+            <p
+              style={{ color: "var(--text-faint)", fontSize: 11, marginTop: 8 }}
+            >
               Running in background thread — UI stays responsive
             </p>
           </div>
         )}
 
-        {/* Search panel */}
+        {/* ── Search panel ─────────────────────────────────────────────── */}
         {rows.length > 0 && (
           <div className="fade-in" style={{ marginBottom: 24 }}>
             {/* Top bar */}
@@ -337,7 +365,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Results */}
+        {/* ── Results ──────────────────────────────────────────────────── */}
         {rows.length > 0 && (
           <div className="fade-in">
             <div
@@ -357,12 +385,12 @@ export default function App() {
                     fontFamily: "'Barlow Condensed', sans-serif",
                     fontWeight: 700,
                     fontSize: 20,
-                    color: "#f59e0b",
+                    color: "var(--accent)",
                   }}
                 >
                   {sorted.length.toLocaleString()}
                 </span>
-                <span style={{ fontSize: 11, color: "#374151" }}>
+                <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
                   stat line{sorted.length !== 1 ? "s" : ""}
                   {activeFilterCount > 0
                     ? ` · ${activeFilterCount} filter${activeFilterCount !== 1 ? "s" : ""} active`
@@ -389,19 +417,19 @@ export default function App() {
           </div>
         )}
 
-        {/* Footer */}
+        {/* ── Footer ───────────────────────────────────────────────────── */}
         <footer
           style={{
             marginTop: 48,
             paddingTop: 18,
-            borderTop: "1px solid #141b27",
+            borderTop: "1px solid var(--border-subtle)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             flexWrap: "wrap",
             gap: 8,
             fontSize: 11,
-            color: "#1e2a3a",
+            color: "var(--text-deep)",
           }}
         >
           <span>
@@ -410,14 +438,20 @@ export default function App() {
               href="https://www.kaggle.com/datasets/eoinamoore/historical-nba-data-and-player-box-scores"
               target="_blank"
               rel="noreferrer"
-              style={{ color: "#374151", textDecoration: "underline" }}
+              style={{
+                color: "var(--text-faint)",
+                textDecoration: "underline",
+              }}
             >
               Historical NBA Data & Player Box Scores
             </a>{" "}
-            by <strong style={{ color: "#4a5568" }}>Eoin A. Moore</strong> on
-            Kaggle.
+            by{" "}
+            <span style={{ color: "var(--text-muted)", fontWeight: 700 }}>
+              Eoin A. Moore
+            </span>{" "}
+            on Kaggle.
           </span>
-          <span style={{ color: "#1e2a3a" }}>
+          <span style={{ color: "var(--text-deep)" }}>
             NBA STAT FINDER · personal & research use only
           </span>
         </footer>

@@ -18,7 +18,7 @@ export default function GameTypeFilter({
   return (
     <div
       style={{
-        background: "#0d1017",
+        background: "var(--bg-surface)",
         border: "1px solid #141b27",
         borderRadius: 6,
         padding: "14px 20px",
@@ -41,8 +41,8 @@ export default function GameTypeFilter({
           activeTypes.length === 0
             ? {
                 background: "rgba(255,255,255,0.06)",
-                borderColor: "#718096",
-                color: "#e2e8f0",
+                bordercolor: "var(--text-muted)",
+                color: "var(--text-primary)",
               }
             : {}
         }
@@ -78,7 +78,7 @@ export default function GameTypeFilter({
         <span
           style={{
             fontSize: 11,
-            color: "#374151",
+            color: "var(--text-secondary)",
             marginLeft: 4,
             fontStyle: "italic",
           }}

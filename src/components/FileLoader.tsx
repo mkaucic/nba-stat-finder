@@ -30,7 +30,7 @@ export default function FileLoader({ onFile, loadMsg }: Props) {
           fontFamily: "'Barlow Condensed', sans-serif",
           fontSize: 40,
           fontWeight: 800,
-          color: "#1e2a3a",
+          color: "var(--text-deep)",
           marginBottom: 10,
           letterSpacing: "0.06em",
         }}
@@ -40,7 +40,7 @@ export default function FileLoader({ onFile, loadMsg }: Props) {
 
       <p
         style={{
-          color: "#374151",
+          color: "var(--text-secondary)",
           fontSize: 13,
           maxWidth: 480,
           margin: "0 auto 28px",
@@ -48,7 +48,7 @@ export default function FileLoader({ onFile, loadMsg }: Props) {
         }}
       >
         Download{" "}
-        <span style={{ color: "#718096", fontWeight: 700 }}>
+        <span style={{ color: "var(--text-muted)", fontWeight: 700 }}>
           PlayerStatistics.csv
         </span>{" "}
         from Kaggle and select it below. The file is ~321 MB — parsing runs in a
@@ -78,8 +78,8 @@ export default function FileLoader({ onFile, loadMsg }: Props) {
         style={{
           marginTop: 44,
           paddingTop: 18,
-          borderTop: "1px solid #141b27",
-          color: "#1e2a3a",
+          borderTop: "1px solid var(--border-subtle)",
+          color: "var(--text-deep)",
           fontSize: 11,
           lineHeight: 1.7,
         }}
@@ -89,12 +89,17 @@ export default function FileLoader({ onFile, loadMsg }: Props) {
           href="https://www.kaggle.com/datasets/eoinamoore/historical-nba-data-and-player-box-scores"
           target="_blank"
           rel="noreferrer"
-          style={{ color: "#374151", textDecoration: "underline" }}
+          style={{
+            color: "var(--text-secondary)",
+            textDecoration: "underline",
+          }}
         >
           Kaggle — Historical NBA Data & Player Box Scores
         </a>{" "}
         by{" "}
-        <span style={{ color: "#374151", fontWeight: 700 }}>Eoin A. Moore</span>
+        <span style={{ color: "var(--text-secondary)", fontWeight: 700 }}>
+          Eoin A. Moore
+        </span>
         .
       </div>
     </div>

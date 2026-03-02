@@ -14,7 +14,7 @@ export default function Pagination({ page, total, setPage, center }: Props) {
         justifyContent: center ? "center" : "flex-end",
         gap: 6,
         fontSize: 11,
-        color: "#4a5568",
+        color: "var(--text-faint)",
       }}
     >
       <button
@@ -34,8 +34,8 @@ export default function Pagination({ page, total, setPage, center }: Props) {
         ‹
       </button>
       <span style={{ minWidth: 110, textAlign: "center" }}>
-        Page <span style={{ color: "#e2e8f0" }}>{page + 1}</span> of{" "}
-        <span style={{ color: "#e2e8f0" }}>{total}</span>
+        Page <span style={{ color: "var(--text-primary)" }}>{page + 1}</span> of{" "}
+        <span style={{ color: "var(--text-primary)" }}>{total}</span>
       </span>
       <button
         className="btn-ghost"
