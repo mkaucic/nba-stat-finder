@@ -1,35 +1,427 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState, useCallback, useMemo } from "react";
+import type {
+  PlayerStatRow,
+  FiltersState,
+  FilterMode,
+  SortState,
+} from "./types/stats";
+import { COLUMNS } from "./constants/columns";
+import { passesFilter } from "./utils/format";
+import FileLoader from "./components/FileLoader";
+import GameTypeFilter from "./components/GameTypeFilter";
+import StatFilters from "./components/StatFilters";
+import ResultsTable from "./components/ResultsTable";
+import Pagination from "./components/Pagination";
 
-function App() {
-  const [count, setCount] = useState(0)
+const PAGE_SIZE = 200; // higher since virtual scroll handles rendering
 
+export default function App() {
+  const [rows, setRows] = useState<PlayerStatRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadMsg, setLoadMsg] = useState("");
+  const [filters, setFilters] = useState<FiltersState>({});
+  const [gameTypeFilter, setGameTypeFilter] = useState<string[]>([]);
+  const [sortState, setSortState] = useState<SortState>({
+    col: "gameDateTimeEst",
+    dir: "desc",
+  });
+  const [page, setPage] = useState(0);
+
+  // ── Parse via Web Worker ──────────────────────────────────────────────────
+  const handleFile = useCallback((file: File) => {
+    setLoading(true);
+    setLoadMsg("Starting worker…");
+
+    const worker = new Worker(
+      new URL("./workers/csvParser.worker.ts", import.meta.url),
+      { type: "module" },
+    );
+
+    worker.onmessage = (e: MessageEvent) => {
+      const msg = e.data;
+      if (msg.type === "progress") {
+        setLoadMsg(msg.message);
+      } else if (msg.type === "complete") {
+        setRows(msg.rows);
+        setLoading(false);
+        setLoadMsg(
+          `✓ Loaded ${(msg.rows as PlayerStatRow[]).length.toLocaleString()} rows`,
+        );
+        setFilters({});
+        setGameTypeFilter([]);
+        setPage(0);
+        worker.terminate();
+      } else if (msg.type === "error") {
+        setLoading(false);
+        setLoadMsg("Error: " + msg.message);
+        worker.terminate();
+      }
+    };
+
+    worker.postMessage({ file });
+  }, []);
+
+  // ── Filter ────────────────────────────────────────────────────────────────
+  const updateFilter = useCallback((key: string, value: string | undefined) => {
+    setFilters((f) => {
+      const next = { ...f } as FiltersState;
+      const k = key as keyof PlayerStatRow;
+      if (value === undefined || value === "") {
+        delete next[k];
+      } else {
+        next[k] = { value, mode: next[k]?.mode ?? "gte" };
+      }
+      return next;
+    });
+    setPage(0);
+  }, []);
+
+  const updateMode = useCallback((key: string, mode: FilterMode) => {
+    setFilters((f) => {
+      const next = { ...f } as FiltersState;
+      const k = key as keyof PlayerStatRow;
+      if (next[k]) next[k] = { ...next[k]!, mode };
+      return next;
+    });
+    setPage(0);
+  }, []);
+
+  const toggleGameType = useCallback((gt: string) => {
+    setGameTypeFilter((prev) =>
+      prev.includes(gt) ? prev.filter((x) => x !== gt) : [...prev, gt],
+    );
+    setPage(0);
+  }, []);
+
+  const clearAll = useCallback(() => {
+    setFilters({});
+    setGameTypeFilter([]);
+    setPage(0);
+  }, []);
+
+  // ── Derived game types list ───────────────────────────────────────────────
+  const gameTypes = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => {
+      if (r.gameType) set.add(r.gameType);
+    });
+    return [...set].sort();
+  }, [rows]);
+
+  // ── Filter + sort (memoised) ──────────────────────────────────────────────
+  const filtered = useMemo(() => {
+    if (!rows.length) return [];
+    return rows.filter((row) => {
+      if (gameTypeFilter.length > 0 && !gameTypeFilter.includes(row.gameType))
+        return false;
+      for (const [key, f] of Object.entries(filters)) {
+        if (!f) continue;
+        const col = COLUMNS.find((c) => c.key === key);
+        if (!col) continue;
+        const rowVal = row[key as keyof PlayerStatRow];
+        if (!passesFilter(rowVal, f.value, col.type, f.mode)) return false;
+      }
+      return true;
+    });
+  }, [rows, filters, gameTypeFilter]);
+
+  const sorted = useMemo(() => {
+    const { col, dir } = sortState;
+    return [...filtered].sort((a, b) => {
+      const av = a[col],
+        bv = b[col];
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === "string")
+        return dir === "asc"
+          ? av.localeCompare(String(bv))
+          : String(bv).localeCompare(av);
+      return dir === "asc"
+        ? (av as number) - (bv as number)
+        : (bv as number) - (av as number);
+    });
+  }, [filtered, sortState]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paged = useMemo(
+    () => sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [sorted, page],
+  );
+
+  const handleSort = useCallback((col: keyof PlayerStatRow) => {
+    setSortState((s) => ({
+      col,
+      dir: s.col === col ? (s.dir === "asc" ? "desc" : "asc") : "desc",
+    }));
+    setPage(0);
+  }, []);
+
+  const activeFilterCount =
+    Object.keys(filters).length + (gameTypeFilter.length > 0 ? 1 : 0);
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#0a0c10",
+        color: "#e2e8f0",
+        fontFamily: "'IBM Plex Mono', 'Courier New', monospace",
+      }}
+    >
+      {/* Header */}
+      <header
+        style={{
+          borderBottom: "1px solid #141b27",
+          background: "linear-gradient(180deg,#0d1017 0%,#0a0c10 100%)",
+          padding: "0 32px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          height: 60,
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
+          <span
+            style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontWeight: 800,
+              fontSize: 26,
+              letterSpacing: "0.04em",
+              color: "#fff",
+            }}
+          >
+            NBA<span style={{ color: "#f59e0b" }}>STAT</span>FINDER
+          </span>
+          <span
+            className="section-label"
+            style={{ color: "#1e2a3a", fontSize: 10 }}
+          >
+            HISTORICAL BOX SCORES
+          </span>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            fontSize: 11,
+            color: "#4a5568",
+          }}
+        >
+          {rows.length > 0 && (
+            <span>
+              <span style={{ color: "#718096" }}>
+                {rows.length.toLocaleString()}
+              </span>{" "}
+              rows
+            </span>
+          )}
+          {sorted.length !== rows.length && rows.length > 0 && (
+            <span className="badge">
+              {sorted.length.toLocaleString()} matches
+            </span>
+          )}
+        </div>
+      </header>
 
-export default App
+      <div style={{ padding: "24px 32px", maxWidth: 1900, margin: "0 auto" }}>
+        {/* File loader */}
+        {rows.length === 0 && !loading && (
+          <FileLoader onFile={handleFile} loadMsg={loadMsg} />
+        )}
+
+        {/* Loading overlay */}
+        {loading && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(10,12,16,0.9)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 999,
+            }}
+          >
+            <div
+              className="pulse"
+              style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: 52,
+                fontWeight: 800,
+                color: "#f59e0b",
+                letterSpacing: "0.06em",
+              }}
+            >
+              PARSING…
+            </div>
+            <p style={{ color: "#718096", marginTop: 14, fontSize: 13 }}>
+              {loadMsg}
+            </p>
+            <p style={{ color: "#4a5568", fontSize: 11, marginTop: 8 }}>
+              Running in background thread — UI stays responsive
+            </p>
+          </div>
+        )}
+
+        {/* Search panel */}
+        {rows.length > 0 && (
+          <div className="fade-in" style={{ marginBottom: 24 }}>
+            {/* Top bar */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 14,
+                flexWrap: "wrap",
+              }}
+            >
+              <span className="section-label">FILTERS</span>
+              <div
+                style={{
+                  marginLeft: "auto",
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "center",
+                }}
+              >
+                {activeFilterCount > 0 && (
+                  <>
+                    <span className="badge">
+                      {activeFilterCount} filter
+                      {activeFilterCount !== 1 ? "s" : ""} active
+                    </span>
+                    <button className="btn-ghost" onClick={clearAll}>
+                      CLEAR ALL
+                    </button>
+                  </>
+                )}
+                <label>
+                  <span className="btn-ghost" style={{ cursor: "pointer" }}>
+                    LOAD NEW FILE
+                  </span>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleFile(f);
+                    }}
+                    style={{ display: "none" }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <GameTypeFilter
+              gameTypes={gameTypes}
+              activeTypes={gameTypeFilter}
+              onToggle={toggleGameType}
+              onClearAll={() => {
+                setGameTypeFilter([]);
+                setPage(0);
+              }}
+            />
+
+            <StatFilters
+              filters={filters}
+              onFilterChange={updateFilter}
+              onModeChange={updateMode}
+            />
+          </div>
+        )}
+
+        {/* Results */}
+        {rows.length > 0 && (
+          <div className="fade-in">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+                flexWrap: "wrap",
+                gap: 8,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span className="section-label">RESULTS</span>
+                <span
+                  style={{
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontWeight: 700,
+                    fontSize: 20,
+                    color: "#f59e0b",
+                  }}
+                >
+                  {sorted.length.toLocaleString()}
+                </span>
+                <span style={{ fontSize: 11, color: "#374151" }}>
+                  stat line{sorted.length !== 1 ? "s" : ""}
+                  {activeFilterCount > 0
+                    ? ` · ${activeFilterCount} filter${activeFilterCount !== 1 ? "s" : ""} active`
+                    : ""}
+                </span>
+              </div>
+              <Pagination page={page} total={totalPages} setPage={setPage} />
+            </div>
+
+            <ResultsTable
+              rows={paged}
+              sortState={sortState}
+              onSort={handleSort}
+            />
+
+            <div style={{ marginTop: 14 }}>
+              <Pagination
+                page={page}
+                total={totalPages}
+                setPage={setPage}
+                center
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <footer
+          style={{
+            marginTop: 48,
+            paddingTop: 18,
+            borderTop: "1px solid #141b27",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 8,
+            fontSize: 11,
+            color: "#1e2a3a",
+          }}
+        >
+          <span>
+            Data:{" "}
+            <a
+              href="https://www.kaggle.com/datasets/eoinamoore/historical-nba-data-and-player-box-scores"
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: "#374151", textDecoration: "underline" }}
+            >
+              Historical NBA Data & Player Box Scores
+            </a>{" "}
+            by <strong style={{ color: "#4a5568" }}>Eoin A. Moore</strong> on
+            Kaggle.
+          </span>
+          <span style={{ color: "#1e2a3a" }}>
+            NBA STAT FINDER · personal & research use only
+          </span>
+        </footer>
+      </div>
+    </div>
+  );
+}
