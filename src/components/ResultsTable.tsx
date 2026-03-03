@@ -223,10 +223,10 @@ export default function ResultsTable({ rows, sortState, onSort }: Props) {
                               color: Object.keys(extraStyle).length
                                 ? undefined
                                 : col.type === "text"
-                                  ? "#cbd5e0"
+                                  ? "var(--text-primary)"
                                   : col.type === "date"
-                                    ? "#4a5568"
-                                    : "#8899a6",
+                                    ? "var(--text-muted)"
+                                    : "var(--text-secondary)",
                               ...extraStyle,
                             }}
                           >
