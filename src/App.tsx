@@ -193,7 +193,12 @@ export default function App() {
           zIndex: 100,
         }}
       >
-        <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <img
+            src="/logo-192.png"
+            alt="NSF logo"
+            style={{ width: 36, height: 36, borderRadius: 8 }}
+          />
           <span
             style={{
               fontFamily: "'Barlow Condensed', sans-serif",
