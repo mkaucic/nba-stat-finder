@@ -302,7 +302,8 @@ export default function App() {
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(10,12,16,0.9)",
+              background: "var(--bg-base)",
+              opacity: 0.95,
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
