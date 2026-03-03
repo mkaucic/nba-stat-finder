@@ -164,6 +164,18 @@ export default function App() {
     setPage(0);
   }, []);
 
+  const [logoBounce, setLogoBounce] = useState(false);
+
+  const handleLogoClick = () => {
+    setLogoBounce(true);
+    setTimeout(() => setLogoBounce(false), 400);
+    setRows([]);
+    setFilters({});
+    setGameTypeFilter([]);
+    setPage(0);
+    setLoadMsg("");
+  };
+
   const activeFilterCount =
     Object.keys(filters).length + (gameTypeFilter.length > 0 ? 1 : 0);
 
@@ -193,11 +205,36 @@ export default function App() {
           zIndex: 100,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {/* Logo / home button */}
+        <button
+          onClick={handleLogoClick}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: "4px 8px 4px 0",
+            borderRadius: 6,
+            transform: logoBounce ? "scale(0.93)" : "scale(1)",
+            transition:
+              "transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+          title="Go to home"
+        >
           <img
             src="/logo-192.png"
             alt="NSF logo"
-            style={{ width: 36, height: 36, borderRadius: 8 }}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              transform: logoBounce ? "rotate(-12deg)" : "rotate(0deg)",
+              transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+            }}
           />
           <span
             style={{
@@ -216,7 +253,7 @@ export default function App() {
           >
             HISTORICAL BOX SCORES
           </span>
-        </div>
+        </button>
 
         <div
           style={{
